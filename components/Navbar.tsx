@@ -1,15 +1,19 @@
 import { Box } from 'lucide-react'
-import React from 'react'
 import Button from './ui/Button';
 import { useOutletContext } from 'react-router';
+import { useState } from 'react';
 const Navbar = () => {
     const {isSignedIn, userName, signIn, signOut} = useOutletContext<AuthContext>()
+    const [authError, setAuthError] = useState<string | null>(null);
+
     const handleAuthClick = async () => {
+        setAuthError(null);
         if (isSignedIn) {
             try {
                 await signOut();
             } catch (error) {
                 console.error("Puter sign out failed:", error);
+                setAuthError(getAuthErrorMessage(error));
             }
             return;
         }
@@ -17,7 +21,18 @@ const Navbar = () => {
             await signIn();
         } catch (error) {
             console.error("Puter sign in failed:", error);
+            setAuthError(getAuthErrorMessage(error));
         }
+    };
+
+    const getAuthErrorMessage = (error: unknown) => {
+        if (error instanceof Error) return error.message;
+        if (typeof error === "object" && error !== null) {
+            if ("msg" in error && typeof error.msg === "string") return error.msg;
+            if ("message" in error && typeof error.message === "string") return error.message;
+            if ("error" in error && typeof error.error === "string") return error.error;
+        }
+        return "Unable to complete authentication. Check the browser console for details.";
     };
 
   return (
@@ -37,6 +52,7 @@ const Navbar = () => {
                     </ul>
         </div>
         <div className="actions">
+                    {authError && <span className="auth-error" role="alert">{authError}</span>}
                     {isSignedIn ? (
                         <>
                             <span className="greeting">

@@ -56,23 +56,20 @@ export default function App() {
   const [authState, setAuthState] = useState<AuthState>(DEFAULT_AUTH_STATE);
 
   const refreshAuth = async () => {
-    try {
-      const user = await getCurrentUser();
+    const user = await getCurrentUser();
 
-      setAuthState({
-        isSignedIn: !!user,
-        userName: user?.username || null,
-        userId: user?.uuid || null,
-      });
-      return !!user;
-    } catch {
-      setAuthState(DEFAULT_AUTH_STATE);
-      return false;
-    }
+    setAuthState({
+      isSignedIn: !!user,
+      userName: user?.username || null,
+      userId: user?.uuid || null,
+    });
+    return !!user;
   };
 
   useEffect(() => {
-    refreshAuth();
+    refreshAuth().catch((error) => {
+      console.error("Puter auth status check failed:", error);
+    });
   }, []);
 
   const signIn = async () => {

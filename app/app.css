@@ -140,6 +140,10 @@
                     @apply text-xs font-semibold uppercase tracking-wide text-zinc-500;
                 }
 
+                .auth-error {
+                    @apply max-w-56 text-xs text-red-700;
+                }
+
                 .btn {
                     @apply rounded-md;
                 }
