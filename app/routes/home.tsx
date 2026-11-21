@@ -3,9 +3,9 @@ import Navbar from "../../components/Navbar";
 import { ArrowRight, Layers,Clock } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Upload from "../../components/Upload";
-import { useNavigate } from "react-router";
-import { useState } from "react";
-import { createProject } from "../../lib/puter.action";
+import { Link, useNavigate, useOutletContext } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { createProject, getProjects } from "../../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,9 +16,44 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { isSignedIn } = useOutletContext<AuthContext>();
   const [projects, setProjects] = useState<DesignItem[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const isCreatingProjectRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isSignedIn) {
+      setProjects([]);
+      setIsLoadingProjects(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    setIsLoadingProjects(true);
+    getProjects()
+      .then((loadedProjects) => {
+        if (isMounted) {
+          setProjects(
+            loadedProjects.sort((a, b) => b.timestamp - a.timestamp),
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingProjects(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isSignedIn]);
 
   const handleUploadComplete = async (base64: string) => {
+    try{
+      if(isCreatingProjectRef.current) return false;
+    isCreatingProjectRef.current = true;
     const newid = Date.now().toString();
     const name = `Residence ${newid}`;
 
@@ -42,6 +77,10 @@ export default function Home() {
         initialRendered: saved.renderedImage || null,
         name
       } });
+      return true;
+    } finally {
+      isCreatingProjectRef.current = false;
+    }
   };
 
   return  (
@@ -94,8 +133,12 @@ export default function Home() {
             </div>
             </div>
           <div className="projects-grid">
-            {projects.map(({id, name, sourceImage, renderedImage, timestamp}) => (
-              <div key = {id} className="project-card group">
+              {isLoadingProjects ? (
+                <p className="loading">Loading projects...</p>
+              ) : projects.length === 0 ? (
+                <p className="empty">Your projects will appear here after you upload a floor plan.</p>
+              ) : projects.map(({id, name, sourceImage, renderedImage, timestamp}) => (
+              <Link key={id} to={`/visualizer/${id}`} className="project-card group text-inherit no-underline">
               <div className="preview">
                 <img src={renderedImage || sourceImage}
                  alt="Project Preview" />
@@ -114,7 +157,7 @@ export default function Home() {
                   <ArrowRight size={18} />
                 </div>
               </div>
-            </div>
+              </Link>
               ))}
             
           </div>
